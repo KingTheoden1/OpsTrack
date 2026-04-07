@@ -1,25 +1,32 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
+import { AuthProvider } from './context/AuthContext';
+import ProtectedRoute from './components/ProtectedRoute';
+import Layout from './components/Layout';
+import Login from './pages/Login';
+import Register from './pages/Register';
+import Dashboard from './pages/Dashboard';
+import DefectLog from './pages/DefectLog';
 
-function App() {
+export default function App() {
   return (
-    <div className="min-h-screen bg-gray-950 text-gray-100">
+    <AuthProvider>
       <Routes>
-        <Route path="/" element={<Navigate to="/dashboard" replace />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
         <Route
-          path="/dashboard"
+          path="/"
           element={
-            <div className="flex items-center justify-center h-screen">
-              <div className="text-center">
-                <h1 className="text-4xl font-bold text-blue-400 mb-2">OpsTrack</h1>
-                <p className="text-gray-400">Defect & Operations Analytics Dashboard</p>
-                <p className="mt-4 text-sm text-gray-500">Phase 1 scaffold running ✓</p>
-              </div>
-            </div>
+            <ProtectedRoute>
+              <Layout />
+            </ProtectedRoute>
           }
-        />
+        >
+          <Route index element={<Navigate to="/dashboard" replace />} />
+          <Route path="dashboard" element={<Dashboard />} />
+          <Route path="defects" element={<DefectLog />} />
+        </Route>
+        <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Routes>
-    </div>
+    </AuthProvider>
   );
 }
-
-export default App;
