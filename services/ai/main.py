@@ -64,9 +64,13 @@ Return only valid JSON, no markdown.
         ],
     )
 
-    import json
+    import json, re
     try:
-        data = json.loads(message.content[0].text)
+        raw = message.content[0].text.strip()
+        # Strip markdown code fences if present
+        raw = re.sub(r'^```(?:json)?\s*', '', raw)
+        raw = re.sub(r'\s*```$', '', raw)
+        data = json.loads(raw)
         return AnalysisResponse(**data)
     except Exception:
         return AnalysisResponse(
