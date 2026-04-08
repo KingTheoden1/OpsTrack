@@ -7,6 +7,7 @@ import { migrate } from './db';
 import authRouter from './routes/auth';
 import defectsRouter from './routes/defects';
 import assetsRouter from './routes/assets';
+import bulkRouter from './routes/bulk';
 
 const app = express();
 const PORT = process.env.PORT ?? 3001;
@@ -21,6 +22,7 @@ app.get('/health', (_req, res) => res.json({ status: 'ok' }));
 app.use('/api/auth', authRouter);
 app.use('/api/defects', defectsRouter);
 app.use('/api/assets', assetsRouter);
+app.use('/api/defects/bulk', bulkRouter);
 
 app.use((err: Error, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
   console.error(err);

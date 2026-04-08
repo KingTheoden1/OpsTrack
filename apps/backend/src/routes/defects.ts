@@ -21,7 +21,7 @@ router.get('/', async (_req, res) => {
     `SELECT d.*, u.email AS reporter_email
      FROM defects d
      LEFT JOIN users u ON u.id = d.reported_by
-     ORDER BY d.created_at DESC`
+     ORDER BY d.id DESC`
   );
   res.json(result.rows);
 });

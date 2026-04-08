@@ -1,0 +1,11 @@
+title,description,severity,status
+Hydraulic fluid leak on panel 14B,Hydraulic fluid seeping from fitting near frame station 245. Requires immediate inspection and seal replacement.,critical,open
+Fastener torque out of spec on wing root,Three fasteners on left wing root assembly measured below minimum torque spec during routine inspection.,high,in_progress
+Corrosion detected on fuselage skin,Minor surface corrosion identified on lower fuselage skin panel near drain hole. Area measures 2cm x 3cm.,medium,open
+Navigation light inoperative,Port navigation light not illuminating during pre-flight check. Bulb and wiring harness to be inspected.,medium,open
+Paint delamination on vertical stabilizer,Coating delamination observed on leading edge of vertical stabilizer approximately 15cm in length.,low,resolved
+Avionics bay cooling fan noise,Unusual noise from cooling fan in avionics bay during ground run. Fan speed nominal but bearing suspected.,high,open
+Door seal degradation on access panel,Rubber seal on left main gear door access panel showing signs of cracking and hardening. Replacement scheduled.,low,closed
+Fuel quantity indicator discrepancy,Left main fuel tank quantity indicator reads 50lbs less than calculated fuel load. Sensor calibration required.,high,in_progress
+Static port partially obstructed,Debris partially obstructing left static port. Cleared during inspection but root cause under investigation.,critical,resolved
+Brake wear indicator at limit,Left main gear inboard brake assembly wear indicator at service limit. Brake replacement required before next flight.,medium,in_progress
