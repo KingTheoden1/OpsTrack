@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { ParentSize } from '@visx/responsive';
 import { Group } from '@visx/group';
 import { Bar } from '@visx/shape';
-import { scaleBand, scaleLinear, scaleOrdinal } from '@visx/scale';
+import { scaleBand, scaleLinear } from '@visx/scale';
 import { AxisBottom, AxisLeft } from '@visx/axis';
 import { defaultStyles, useTooltip, TooltipWithBounds } from '@visx/tooltip';
 import type { Defect, DefectSeverity, DefectStatus } from '../types';
