@@ -35,8 +35,8 @@ router.post('/register', async (req, res) => {
     const user = result.rows[0];
     const token = signToken(user);
     res.status(201).json({ token, user });
-  } catch (err: any) {
-    if (err.code === '23505') {
+  } catch (err: unknown) {
+    if (typeof err === 'object' && err !== null && 'code' in err && (err as { code: string }).code === '23505') {
       res.status(409).json({ error: 'Email already in use' });
       return;
     }

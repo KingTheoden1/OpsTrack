@@ -4,6 +4,7 @@ export interface User {
   id: number;
   email: string;
   role: UserRole;
+  created_at?: string;
 }
 
 export type DefectSeverity = 'critical' | 'high' | 'medium' | 'low';
