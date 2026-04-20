@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getDefects, createDefect, updateDefect } from '../api/defects';
 import { useAuth } from '../context/AuthContext';
@@ -48,12 +48,13 @@ export default function DefectLog() {
     mutationFn: ({ id, data }: { id: number; data: Partial<Defect> }) => updateDefect(id, data),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['defects'] });
-      setEditing(null);
+      // Refresh the selected defect in the slide-over with updated data
+      setSelected((prev) => prev ? { ...prev, ...editForm } as Defect : null);
     },
   });
 
   const [showCreate, setShowCreate] = useState(false);
-  const [editing, setEditing] = useState<Defect | null>(null);
+  const [selected, setSelected] = useState<Defect | null>(null);
   const [form, setForm] = useState(emptyForm);
   const [editForm, setEditForm] = useState<Partial<Defect>>({});
 
@@ -79,14 +80,15 @@ export default function DefectLog() {
     setFilterStatus('all');
   }
 
-  function openEdit(defect: Defect) {
-    setEditing(defect);
+  function openDetail(defect: Defect) {
+    setSelected(defect);
     setEditForm({
       title: defect.title,
       description: defect.description,
       severity: defect.severity,
       status: defect.status,
     });
+    updateMutation.reset();
   }
 
   return (
@@ -162,25 +164,28 @@ export default function DefectLog() {
               <th className="text-left px-4 py-3">Status</th>
               <th className="text-left px-4 py-3">Reporter</th>
               <th className="text-left px-4 py-3">Date</th>
-              {canWrite && <th className="px-4 py-3" />}
             </tr>
           </thead>
           <tbody>
             {isLoading ? (
               <tr>
-                <td colSpan={7} className="text-center py-12 text-gray-600">
+                <td colSpan={6} className="text-center py-12 text-gray-600">
                   Loading…
                 </td>
               </tr>
             ) : filtered.length === 0 ? (
               <tr>
-                <td colSpan={7} className="text-center py-12 text-gray-600">
+                <td colSpan={6} className="text-center py-12 text-gray-600">
                   {isFiltered ? 'No defects match your filters.' : 'No defects logged yet.'}
                 </td>
               </tr>
             ) : (
               filtered.map((d) => (
-                <tr key={d.id} className="border-b border-gray-800/50 hover:bg-gray-800/30 transition-colors">
+                <tr
+                  key={d.id}
+                  onClick={() => openDetail(d)}
+                  className="border-b border-gray-800/50 hover:bg-gray-800/30 transition-colors cursor-pointer"
+                >
                   <td className="px-4 py-3 text-gray-500">#{d.id}</td>
                   <td className="px-4 py-3 text-gray-100 max-w-xs truncate">{d.title}</td>
                   <td className="px-4 py-3">
@@ -197,16 +202,6 @@ export default function DefectLog() {
                   <td className="px-4 py-3 text-gray-500 text-xs">
                     {new Date(d.created_at).toLocaleDateString()}
                   </td>
-                  {canWrite && (
-                    <td className="px-4 py-3">
-                      <button
-                        onClick={() => openEdit(d)}
-                        className="text-xs text-gray-500 hover:text-blue-400 transition-colors"
-                      >
-                        Edit
-                      </button>
-                    </td>
-                  )}
                 </tr>
               ))
             )}
@@ -227,18 +222,17 @@ export default function DefectLog() {
         </Modal>
       )}
 
-      {/* Edit Modal */}
-      {editing && (
-        <Modal title={`Edit Defect #${editing.id}`} onClose={() => setEditing(null)}>
-          <DefectForm
-            form={editForm as typeof emptyForm}
-            onChange={(f) => setEditForm((p) => ({ ...p, ...f }))}
-            onSubmit={() => updateMutation.mutate({ id: editing.id, data: editForm })}
-            loading={updateMutation.isPending}
-            submitLabel="Save Changes"
-          />
-        </Modal>
-      )}
+      {/* Detail / Edit slide-over */}
+      <SlideOver
+        defect={selected}
+        onClose={() => setSelected(null)}
+        canWrite={canWrite}
+        editForm={editForm}
+        onEditChange={(f) => setEditForm((p) => ({ ...p, ...f }))}
+        onSave={() => selected && updateMutation.mutate({ id: selected.id, data: editForm })}
+        saving={updateMutation.isPending}
+        saved={updateMutation.isSuccess}
+      />
     </div>
   );
 }
@@ -254,6 +248,128 @@ function Modal({ title, onClose, children }: { title: string; onClose: () => voi
         <div className="px-6 py-5">{children}</div>
       </div>
     </div>
+  );
+}
+
+function SlideOver({
+  defect,
+  onClose,
+  canWrite,
+  editForm,
+  onEditChange,
+  onSave,
+  saving,
+  saved,
+}: {
+  defect: Defect | null;
+  onClose: () => void;
+  canWrite: boolean;
+  editForm: Partial<typeof emptyForm>;
+  onEditChange: (f: Partial<typeof emptyForm>) => void;
+  onSave: () => void;
+  saving: boolean;
+  saved: boolean;
+}) {
+  // Close on Escape key
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (e.key === 'Escape') onClose();
+    }
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [onClose]);
+
+  const isOpen = defect !== null;
+
+  return (
+    <>
+      {/* Backdrop */}
+      <div
+        onClick={onClose}
+        className={`fixed inset-0 bg-black/50 z-40 transition-opacity duration-200 ${
+          isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'
+        }`}
+      />
+
+      {/* Panel */}
+      <div
+        className={`fixed top-0 right-0 h-full w-full max-w-md bg-gray-900 border-l border-gray-800 z-50 flex flex-col
+          transition-transform duration-250 ease-in-out ${isOpen ? 'translate-x-0' : 'translate-x-full'}`}
+      >
+        {defect && (
+          <>
+            {/* Header */}
+            <div className="flex items-start justify-between px-6 py-5 border-b border-gray-800 shrink-0">
+              <div className="pr-4">
+                <p className="text-xs text-gray-500 mb-1">Defect #{defect.id}</p>
+                <h2 className="text-base font-semibold text-gray-100 leading-snug">{defect.title}</h2>
+              </div>
+              <button
+                onClick={onClose}
+                className="text-gray-600 hover:text-gray-300 text-2xl leading-none shrink-0"
+                aria-label="Close"
+              >
+                ×
+              </button>
+            </div>
+
+            {/* Scrollable body */}
+            <div className="flex-1 overflow-y-auto px-6 py-5 space-y-6">
+
+              {/* Metadata grid */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-xs text-gray-500 mb-1">Severity</p>
+                  <span className={`inline-block text-xs px-2 py-0.5 rounded-full border capitalize ${SEVERITY_COLORS[defect.severity]}`}>
+                    {defect.severity}
+                  </span>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-500 mb-1">Status</p>
+                  <span className={`inline-block text-xs px-2 py-0.5 rounded-full border capitalize ${STATUS_COLORS[defect.status]}`}>
+                    {defect.status.replace('_', ' ')}
+                  </span>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-500 mb-1">Reported by</p>
+                  <p className="text-sm text-gray-300">{defect.reporter_email ?? `User #${defect.reported_by}`}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-500 mb-1">Logged</p>
+                  <p className="text-sm text-gray-300">{new Date(defect.created_at).toLocaleDateString()}</p>
+                </div>
+                {defect.updated_at && defect.updated_at !== defect.created_at && (
+                  <div className="col-span-2">
+                    <p className="text-xs text-gray-500 mb-1">Last updated</p>
+                    <p className="text-sm text-gray-300">{new Date(defect.updated_at).toLocaleDateString()}</p>
+                  </div>
+                )}
+              </div>
+
+              {/* Description */}
+              <div>
+                <p className="text-xs text-gray-500 mb-2">Description</p>
+                <p className="text-sm text-gray-300 leading-relaxed whitespace-pre-wrap">{defect.description}</p>
+              </div>
+
+              {/* Edit form — admin/supervisor only */}
+              {canWrite && (
+                <div className="border-t border-gray-800 pt-5">
+                  <p className="text-xs text-gray-500 uppercase tracking-wide mb-4">Edit Defect</p>
+                  <DefectForm
+                    form={editForm as typeof emptyForm}
+                    onChange={onEditChange}
+                    onSubmit={onSave}
+                    loading={saving}
+                    submitLabel={saved ? 'Saved!' : 'Save Changes'}
+                  />
+                </div>
+              )}
+            </div>
+          </>
+        )}
+      </div>
+    </>
   );
 }
 
