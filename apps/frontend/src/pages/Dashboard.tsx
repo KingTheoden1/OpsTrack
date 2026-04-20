@@ -1,3 +1,4 @@
+import { useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { getDefects } from '../api/defects';
 import { useAuth } from '../context/AuthContext';
@@ -46,11 +47,14 @@ function BarChart({
   width: number;
   height: number;
 }) {
+  const containerRef = useRef<HTMLDivElement>(null);
   const { showTooltip, hideTooltip, tooltipData, tooltipLeft, tooltipTop, tooltipOpen } =
     useTooltip<{ label: string; count: number }>();
 
-  const innerW = width - margin.left - margin.right;
+  const innerW = Math.max(width - margin.left - margin.right, 0);
   const innerH = height - margin.top - margin.bottom;
+
+  const maxCount = Math.max(...data.map((d) => d.count), 1);
 
   const xScale = scaleBand({
     domain: data.map((d) => d.label),
@@ -59,19 +63,20 @@ function BarChart({
   });
 
   const yScale = scaleLinear({
-    domain: [0, Math.max(...data.map((d) => d.count), 1)],
+    domain: [0, maxCount],
     range: [innerH, 0],
     nice: true,
   });
 
   return (
-    <div style={{ position: 'relative' }}>
+    // overflow: hidden stops sub-pixel SVG rounding from creating a page scrollbar
+    <div ref={containerRef} style={{ position: 'relative', overflow: 'hidden' }}>
       <svg width={width} height={height}>
         <Group left={margin.left} top={margin.top}>
           {data.map((d) => {
             const x = xScale(d.label) ?? 0;
             const y = yScale(d.count);
-            const barH = innerH - y;
+            const barH = Math.max(innerH - y, 0);
             return (
               <Bar
                 key={d.label}
@@ -83,10 +88,12 @@ function BarChart({
                 rx={4}
                 opacity={0.85}
                 onMouseMove={(e) => {
+                  // Subtract container's bounding rect so tooltip is cursor-relative, not page-relative
+                  const rect = containerRef.current?.getBoundingClientRect();
                   showTooltip({
                     tooltipData: d,
-                    tooltipLeft: e.clientX,
-                    tooltipTop: e.clientY,
+                    tooltipLeft: rect ? e.clientX - rect.left : e.clientX,
+                    tooltipTop: rect ? e.clientY - rect.top : e.clientY,
                   });
                 }}
                 onMouseLeave={hideTooltip}
@@ -105,7 +112,9 @@ function BarChart({
             stroke="#374151"
             tickStroke="transparent"
             tickLabelProps={{ fill: '#9ca3af', fontSize: 11, textAnchor: 'end', dx: -4 }}
-            numTicks={4}
+            // Only render whole-number ticks so we never show 0.5, 1.5, etc.
+            numTicks={Math.min(maxCount, 5)}
+            tickFormat={(v) => (Number.isInteger(Number(v)) ? String(Number(v)) : '')}
           />
         </Group>
       </svg>
@@ -113,9 +122,18 @@ function BarChart({
         <TooltipWithBounds
           top={tooltipTop}
           left={tooltipLeft}
-          style={{ ...defaultStyles, background: '#1f2937', border: '1px solid #374151', color: '#f9fafb', fontSize: 12 }}
+          style={{
+            ...defaultStyles,
+            background: '#1f2937',
+            border: '1px solid #374151',
+            color: '#f9fafb',
+            fontSize: 12,
+            pointerEvents: 'none',
+          }}
         >
-          <strong className="capitalize">{tooltipData.label.replace('_', ' ')}</strong>: {tooltipData.count}
+          <strong className="capitalize">{tooltipData.label.replace('_', ' ')}</strong>
+          {': '}
+          {tooltipData.count}
         </TooltipWithBounds>
       )}
     </div>
