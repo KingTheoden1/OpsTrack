@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import DefectLog from '../../pages/DefectLog';
+import { getDefects } from '../../api/defects';
 import { renderWithProviders, seedAuth, ADMIN_USER, SUPERVISOR_USER, VIEWER_USER } from '../../test/helpers';
 
 // Mock API so no real HTTP calls are made
@@ -220,5 +221,89 @@ describe('DefectLog — filtering', () => {
     await userEvent.type(searchInput, 'hydraulic');
 
     expect(screen.getByText('1 of 2 defects')).toBeInTheDocument();
+  });
+});
+
+// ─── Pagination ───────────────────────────────────────────────────────────────
+
+/** Build 12 minimal defect objects so the 10-per-page limit is exceeded. */
+function makeDefects(count: number) {
+  return Array.from({ length: count }, (_, i) => ({
+    id: i + 1,
+    title: `Defect ${i + 1}`,
+    description: `Description ${i + 1}`,
+    severity: 'low' as const,
+    status: 'open' as const,
+    reporter_email: 'admin@ops.com',
+    reported_by: 1,
+    created_at: '2026-04-01T00:00:00Z',
+    updated_at: '2026-04-01T00:00:00Z',
+  }));
+}
+
+describe('DefectLog — pagination', () => {
+  beforeEach(() => {
+    vi.mocked(getDefects).mockResolvedValue(makeDefects(12));
+  });
+
+  it('shows only 10 rows on page 1 when there are 12 defects', async () => {
+    seedAuth(VIEWER_USER);
+    renderWithProviders(<DefectLog />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Defect 1')).toBeInTheDocument();
+    });
+
+    expect(screen.getByText('Defect 10')).toBeInTheDocument();
+    expect(screen.queryByText('Defect 11')).not.toBeInTheDocument();
+  });
+
+  it('renders the pagination bar with prev/next buttons', async () => {
+    seedAuth(VIEWER_USER);
+    renderWithProviders(<DefectLog />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Defect 1')).toBeInTheDocument();
+    });
+
+    expect(screen.getByText('←')).toBeInTheDocument();
+    expect(screen.getByText('→')).toBeInTheDocument();
+    expect(screen.getByText('Showing 1–10 of 12')).toBeInTheDocument();
+  });
+
+  it('advances to page 2 and shows the remaining rows', async () => {
+    seedAuth(VIEWER_USER);
+    renderWithProviders(<DefectLog />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Defect 1')).toBeInTheDocument();
+    });
+
+    await userEvent.click(screen.getByText('→'));
+
+    expect(screen.getByText('Defect 11')).toBeInTheDocument();
+    expect(screen.getByText('Defect 12')).toBeInTheDocument();
+    expect(screen.queryByText('Defect 1')).not.toBeInTheDocument();
+    expect(screen.getByText('Showing 11–12 of 12')).toBeInTheDocument();
+  });
+
+  it('resets to page 1 when a filter is applied', async () => {
+    seedAuth(VIEWER_USER);
+    renderWithProviders(<DefectLog />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Defect 1')).toBeInTheDocument();
+    });
+
+    // Go to page 2 first
+    await userEvent.click(screen.getByText('→'));
+    expect(screen.getByText('Defect 11')).toBeInTheDocument();
+
+    // Apply a filter — should snap back to page 1
+    const searchInput = screen.getByPlaceholderText('Search title or description…');
+    await userEvent.type(searchInput, 'Defect 1');
+
+    expect(screen.getByText('Defect 1')).toBeInTheDocument();
+    expect(screen.queryByText('Defect 11')).not.toBeInTheDocument();
   });
 });
