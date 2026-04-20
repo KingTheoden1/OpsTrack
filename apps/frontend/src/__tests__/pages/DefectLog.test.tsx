@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import DefectLog from '../../pages/DefectLog';
 import { renderWithProviders, seedAuth, ADMIN_USER, SUPERVISOR_USER, VIEWER_USER } from '../../test/helpers';
 
@@ -15,6 +16,16 @@ vi.mock('../../api/defects', () => ({
       reporter_email: 'admin@ops.com',
       reported_by: 1,
       created_at: '2026-04-01T00:00:00Z',
+    },
+    {
+      id: 2,
+      title: 'Cracked landing gear strut',
+      description: 'Hairline fracture detected on inspection',
+      severity: 'high',
+      status: 'in_progress',
+      reporter_email: 'sup@ops.com',
+      reported_by: 2,
+      created_at: '2026-04-02T00:00:00Z',
     },
   ]),
   createDefect: vi.fn().mockResolvedValue({}),
@@ -90,7 +101,7 @@ describe('DefectLog — RBAC: edit button', () => {
     renderWithProviders(<DefectLog />);
 
     await waitFor(() => {
-      expect(screen.getByText('Edit')).toBeInTheDocument();
+      expect(screen.getAllByText('Edit')).toHaveLength(2);
     });
   });
 
@@ -99,7 +110,7 @@ describe('DefectLog — RBAC: edit button', () => {
     renderWithProviders(<DefectLog />);
 
     await waitFor(() => {
-      expect(screen.getByText('Edit')).toBeInTheDocument();
+      expect(screen.getAllByText('Edit')).toHaveLength(2);
     });
   });
 
@@ -112,5 +123,77 @@ describe('DefectLog — RBAC: edit button', () => {
     });
 
     expect(screen.queryByText('Edit')).not.toBeInTheDocument();
+  });
+});
+
+// ─── Filtering ────────────────────────────────────────────────────────────────
+
+describe('DefectLog — filtering', () => {
+  it('filters by search text and hides non-matching rows', async () => {
+    seedAuth(VIEWER_USER);
+    renderWithProviders(<DefectLog />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Hydraulic fluid leak')).toBeInTheDocument();
+    });
+
+    const searchInput = screen.getByPlaceholderText('Search title or description…');
+    await userEvent.type(searchInput, 'landing gear');
+
+    expect(screen.queryByText('Hydraulic fluid leak')).not.toBeInTheDocument();
+    expect(screen.getByText('Cracked landing gear strut')).toBeInTheDocument();
+  });
+
+  it('filters by severity and hides non-matching rows', async () => {
+    seedAuth(VIEWER_USER);
+    renderWithProviders(<DefectLog />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Hydraulic fluid leak')).toBeInTheDocument();
+    });
+
+    await userEvent.selectOptions(
+      screen.getByDisplayValue('All severities'),
+      'high'
+    );
+
+    expect(screen.queryByText('Hydraulic fluid leak')).not.toBeInTheDocument();
+    expect(screen.getByText('Cracked landing gear strut')).toBeInTheDocument();
+  });
+
+  it('shows a Clear button when a filter is active and clears filters on click', async () => {
+    seedAuth(VIEWER_USER);
+    renderWithProviders(<DefectLog />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Hydraulic fluid leak')).toBeInTheDocument();
+    });
+
+    const searchInput = screen.getByPlaceholderText('Search title or description…');
+    await userEvent.type(searchInput, 'hydraulic');
+
+    const clearBtn = screen.getByText('Clear');
+    expect(clearBtn).toBeInTheDocument();
+
+    await userEvent.click(clearBtn);
+
+    // Both rows should be visible again
+    expect(screen.getByText('Hydraulic fluid leak')).toBeInTheDocument();
+    expect(screen.getByText('Cracked landing gear strut')).toBeInTheDocument();
+    expect(screen.queryByText('Clear')).not.toBeInTheDocument();
+  });
+
+  it('updates the count label when filters are active', async () => {
+    seedAuth(VIEWER_USER);
+    renderWithProviders(<DefectLog />);
+
+    await waitFor(() => {
+      expect(screen.getByText('2 total defects')).toBeInTheDocument();
+    });
+
+    const searchInput = screen.getByPlaceholderText('Search title or description…');
+    await userEvent.type(searchInput, 'hydraulic');
+
+    expect(screen.getByText('1 of 2 defects')).toBeInTheDocument();
   });
 });

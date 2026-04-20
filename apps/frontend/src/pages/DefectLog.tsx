@@ -57,6 +57,28 @@ export default function DefectLog() {
   const [form, setForm] = useState(emptyForm);
   const [editForm, setEditForm] = useState<Partial<Defect>>({});
 
+  // ── Filters ────────────────────────────────────────────────────────────────
+  const [search, setSearch] = useState('');
+  const [filterSeverity, setFilterSeverity] = useState<DefectSeverity | 'all'>('all');
+  const [filterStatus, setFilterStatus] = useState<DefectStatus | 'all'>('all');
+
+  const filtered = defects.filter((d) => {
+    const q = search.trim().toLowerCase();
+    const matchesSearch =
+      !q || d.title.toLowerCase().includes(q) || d.description.toLowerCase().includes(q);
+    const matchesSeverity = filterSeverity === 'all' || d.severity === filterSeverity;
+    const matchesStatus = filterStatus === 'all' || d.status === filterStatus;
+    return matchesSearch && matchesSeverity && matchesStatus;
+  });
+
+  const isFiltered = search.trim() !== '' || filterSeverity !== 'all' || filterStatus !== 'all';
+
+  function clearFilters() {
+    setSearch('');
+    setFilterSeverity('all');
+    setFilterStatus('all');
+  }
+
   function openEdit(defect: Defect) {
     setEditing(defect);
     setEditForm({
@@ -72,7 +94,11 @@ export default function DefectLog() {
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold text-gray-100">Defect Log</h1>
-          <p className="text-gray-500 text-sm mt-0.5">{defects.length} total defects</p>
+          <p className="text-gray-500 text-sm mt-0.5">
+            {isFiltered
+              ? `${filtered.length} of ${defects.length} defects`
+              : `${defects.length} total defects`}
+          </p>
         </div>
         {canWrite && (
           <button
@@ -80,6 +106,47 @@ export default function DefectLog() {
             className="bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors"
           >
             + New Defect
+          </button>
+        )}
+      </div>
+
+      {/* Filter bar */}
+      <div className="flex flex-wrap gap-3 mb-4">
+        <input
+          type="text"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Search title or description…"
+          className="flex-1 min-w-48 bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-100 placeholder-gray-600 focus:outline-none focus:border-blue-500"
+        />
+        <select
+          value={filterSeverity}
+          onChange={(e) => setFilterSeverity(e.target.value as DefectSeverity | 'all')}
+          className="bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-300 focus:outline-none focus:border-blue-500"
+        >
+          <option value="all">All severities</option>
+          <option value="critical">Critical</option>
+          <option value="high">High</option>
+          <option value="medium">Medium</option>
+          <option value="low">Low</option>
+        </select>
+        <select
+          value={filterStatus}
+          onChange={(e) => setFilterStatus(e.target.value as DefectStatus | 'all')}
+          className="bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-300 focus:outline-none focus:border-blue-500"
+        >
+          <option value="all">All statuses</option>
+          <option value="open">Open</option>
+          <option value="in_progress">In Progress</option>
+          <option value="resolved">Resolved</option>
+          <option value="closed">Closed</option>
+        </select>
+        {isFiltered && (
+          <button
+            onClick={clearFilters}
+            className="text-xs text-gray-500 hover:text-gray-300 px-3 py-2 rounded-lg border border-gray-700 transition-colors"
+          >
+            Clear
           </button>
         )}
       </div>
@@ -105,14 +172,14 @@ export default function DefectLog() {
                   Loading…
                 </td>
               </tr>
-            ) : defects.length === 0 ? (
+            ) : filtered.length === 0 ? (
               <tr>
                 <td colSpan={7} className="text-center py-12 text-gray-600">
-                  No defects logged yet.
+                  {isFiltered ? 'No defects match your filters.' : 'No defects logged yet.'}
                 </td>
               </tr>
             ) : (
-              defects.map((d) => (
+              filtered.map((d) => (
                 <tr key={d.id} className="border-b border-gray-800/50 hover:bg-gray-800/30 transition-colors">
                   <td className="px-4 py-3 text-gray-500">#{d.id}</td>
                   <td className="px-4 py-3 text-gray-100 max-w-xs truncate">{d.title}</td>
