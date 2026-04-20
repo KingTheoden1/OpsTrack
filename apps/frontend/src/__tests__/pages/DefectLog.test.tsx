@@ -93,28 +93,10 @@ describe('DefectLog — RBAC: create button', () => {
   });
 });
 
-// ─── RBAC — edit button ───────────────────────────────────────────────────────
+// ─── Row click opens slide-over ───────────────────────────────────────────────
 
-describe('DefectLog — RBAC: edit button', () => {
-  it('shows the Edit button for admin', async () => {
-    seedAuth(ADMIN_USER);
-    renderWithProviders(<DefectLog />);
-
-    await waitFor(() => {
-      expect(screen.getAllByText('Edit')).toHaveLength(2);
-    });
-  });
-
-  it('shows the Edit button for supervisor', async () => {
-    seedAuth(SUPERVISOR_USER);
-    renderWithProviders(<DefectLog />);
-
-    await waitFor(() => {
-      expect(screen.getAllByText('Edit')).toHaveLength(2);
-    });
-  });
-
-  it('hides the Edit button for viewer', async () => {
+describe('DefectLog — slide-over detail panel', () => {
+  it('opens the slide-over with full description when a row is clicked', async () => {
     seedAuth(VIEWER_USER);
     renderWithProviders(<DefectLog />);
 
@@ -122,7 +104,50 @@ describe('DefectLog — RBAC: edit button', () => {
       expect(screen.getByText('Hydraulic fluid leak')).toBeInTheDocument();
     });
 
-    expect(screen.queryByText('Edit')).not.toBeInTheDocument();
+    await userEvent.click(screen.getByText('Hydraulic fluid leak'));
+
+    expect(screen.getByText('Fluid near frame 245')).toBeInTheDocument();
+  });
+
+  it('shows the Edit Defect section in the slide-over for admin', async () => {
+    seedAuth(ADMIN_USER);
+    renderWithProviders(<DefectLog />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Hydraulic fluid leak')).toBeInTheDocument();
+    });
+
+    await userEvent.click(screen.getByText('Hydraulic fluid leak'));
+
+    expect(screen.getByText('Edit Defect')).toBeInTheDocument();
+  });
+
+  it('hides the Edit Defect section in the slide-over for viewer', async () => {
+    seedAuth(VIEWER_USER);
+    renderWithProviders(<DefectLog />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Hydraulic fluid leak')).toBeInTheDocument();
+    });
+
+    await userEvent.click(screen.getByText('Hydraulic fluid leak'));
+
+    expect(screen.queryByText('Edit Defect')).not.toBeInTheDocument();
+  });
+
+  it('closes the slide-over when the × button is clicked', async () => {
+    seedAuth(VIEWER_USER);
+    renderWithProviders(<DefectLog />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Hydraulic fluid leak')).toBeInTheDocument();
+    });
+
+    await userEvent.click(screen.getByText('Hydraulic fluid leak'));
+    expect(screen.getByText('Fluid near frame 245')).toBeInTheDocument();
+
+    await userEvent.click(screen.getByLabelText('Close'));
+    expect(screen.queryByText('Fluid near frame 245')).not.toBeInTheDocument();
   });
 });
 
