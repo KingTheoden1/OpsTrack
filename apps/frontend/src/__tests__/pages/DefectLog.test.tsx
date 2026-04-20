@@ -236,6 +236,8 @@ function makeDefects(count: number) {
     status: 'open' as const,
     reporter_email: 'admin@ops.com',
     reported_by: 1,
+    asset_id: null,
+    assigned_to: null,
     created_at: '2026-04-01T00:00:00Z',
     updated_at: '2026-04-01T00:00:00Z',
   }));
