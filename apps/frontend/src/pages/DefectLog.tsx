@@ -18,6 +18,8 @@ const STATUS_COLORS: Record<DefectStatus, string> = {
   closed: 'bg-gray-500/20 text-gray-400 border-gray-700',
 };
 
+const PAGE_SIZE = 10;
+
 const emptyForm = {
   title: '',
   description: '',
@@ -80,6 +82,19 @@ export default function DefectLog() {
     setFilterStatus('all');
   }
 
+  // ── Pagination ─────────────────────────────────────────────────────────────
+  const [page, setPage] = useState(1);
+
+  // Reset to page 1 whenever filters change so we never land on an empty page
+  useEffect(() => {
+    setPage(1);
+  }, [search, filterSeverity, filterStatus]);
+
+  const totalPages = Math.max(Math.ceil(filtered.length / PAGE_SIZE), 1);
+  const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  const firstItem = filtered.length === 0 ? 0 : (page - 1) * PAGE_SIZE + 1;
+  const lastItem = Math.min(page * PAGE_SIZE, filtered.length);
+
   function openDetail(defect: Defect) {
     setSelected(defect);
     setEditForm({
@@ -99,7 +114,7 @@ export default function DefectLog() {
           <p className="text-gray-500 text-sm mt-0.5">
             {isFiltered
               ? `${filtered.length} of ${defects.length} defects`
-              : `${defects.length} total defects`}
+              : `${defects.length} total defect${defects.length !== 1 ? 's' : ''}`}
           </p>
         </div>
         {canWrite && (
@@ -180,7 +195,7 @@ export default function DefectLog() {
                 </td>
               </tr>
             ) : (
-              filtered.map((d) => (
+              paginated.map((d) => (
                 <tr
                   key={d.id}
                   onClick={() => openDetail(d)}
@@ -209,6 +224,48 @@ export default function DefectLog() {
         </table>
       </div>
 
+      {/* Pagination bar */}
+      {filtered.length > PAGE_SIZE && (
+        <div className="flex items-center justify-between mt-4 text-sm">
+          <span className="text-gray-500 text-xs">
+            Showing {firstItem}–{lastItem} of {filtered.length}
+          </span>
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => setPage((p) => Math.max(p - 1, 1))}
+              disabled={page === 1}
+              className="px-3 py-1.5 rounded-lg border border-gray-700 text-gray-400 hover:text-gray-100 hover:border-gray-500 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+            >
+              ←
+            </button>
+            {getPageNumbers(page, totalPages).map((n, i) =>
+              n === '...' ? (
+                <span key={`ellipsis-${i}`} className="px-2 text-gray-600">…</span>
+              ) : (
+                <button
+                  key={n}
+                  onClick={() => setPage(Number(n))}
+                  className={`w-8 h-8 rounded-lg text-xs font-medium transition-colors ${
+                    page === n
+                      ? 'bg-blue-600 text-white'
+                      : 'border border-gray-700 text-gray-400 hover:text-gray-100 hover:border-gray-500'
+                  }`}
+                >
+                  {n}
+                </button>
+              )
+            )}
+            <button
+              onClick={() => setPage((p) => Math.min(p + 1, totalPages))}
+              disabled={page === totalPages}
+              className="px-3 py-1.5 rounded-lg border border-gray-700 text-gray-400 hover:text-gray-100 hover:border-gray-500 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+            >
+              →
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Create Modal */}
       {showCreate && (
         <Modal title="Log New Defect" onClose={() => setShowCreate(false)}>
@@ -235,6 +292,14 @@ export default function DefectLog() {
       />
     </div>
   );
+}
+
+/** Returns page numbers with '...' gaps for large ranges. */
+function getPageNumbers(current: number, total: number): (number | '...')[] {
+  if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);
+  if (current <= 4) return [1, 2, 3, 4, 5, '...', total];
+  if (current >= total - 3) return [1, '...', total - 4, total - 3, total - 2, total - 1, total];
+  return [1, '...', current - 1, current, current + 1, '...', total];
 }
 
 function Modal({ title, onClose, children }: { title: string; onClose: () => void; children: React.ReactNode }) {
