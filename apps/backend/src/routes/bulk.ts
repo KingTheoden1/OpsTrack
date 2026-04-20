@@ -14,7 +14,7 @@ const RowSchema = z.object({
 
 const BulkSchema = z.array(RowSchema).min(1).max(500);
 
-router.post('/', authenticate, requireRole('admin', 'supervisor'), async (req, res) => {
+router.post('/', authenticate, requireRole('admin', 'supervisor'), async (req, res, next) => {
   const parsed = BulkSchema.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: parsed.error.flatten() });
@@ -37,7 +37,7 @@ router.post('/', authenticate, requireRole('admin', 'supervisor'), async (req, r
     res.status(201).json({ inserted: rows.length });
   } catch (err) {
     await client.query('ROLLBACK');
-    throw err;
+    next(err);
   } finally {
     client.release();
   }
