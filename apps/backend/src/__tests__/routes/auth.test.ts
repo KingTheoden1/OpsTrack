@@ -1,14 +1,14 @@
 import request from 'supertest';
 import bcrypt from 'bcryptjs';
 import app from '../../app';
+import { pool } from '../../db';
 
 // Mock the database pool so no real PostgreSQL is needed.
 jest.mock('../../db', () => ({
   pool: { query: jest.fn() },
 }));
 
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const { pool } = require('../../db') as { pool: { query: jest.Mock } };
+const mockPool = pool as unknown as { query: jest.Mock };
 
 beforeEach(() => {
   jest.clearAllMocks();
@@ -19,7 +19,7 @@ beforeEach(() => {
 
 describe('POST /api/auth/register', () => {
   it('returns 201 with token and user on valid data', async () => {
-    pool.query.mockResolvedValueOnce({
+    mockPool.query.mockResolvedValueOnce({
       rows: [{ id: 1, email: 'new@ops.com', role: 'viewer' }],
     });
 
@@ -51,7 +51,7 @@ describe('POST /api/auth/register', () => {
 
   it('returns 409 when the email is already in use', async () => {
     const dbError = Object.assign(new Error('duplicate'), { code: '23505' });
-    pool.query.mockRejectedValueOnce(dbError);
+    mockPool.query.mockRejectedValueOnce(dbError);
 
     const res = await request(app)
       .post('/api/auth/register')
@@ -62,7 +62,7 @@ describe('POST /api/auth/register', () => {
   });
 
   it('assigns viewer as the default role when none is specified', async () => {
-    pool.query.mockResolvedValueOnce({
+    mockPool.query.mockResolvedValueOnce({
       rows: [{ id: 2, email: 'default@ops.com', role: 'viewer' }],
     });
 
@@ -80,7 +80,7 @@ describe('POST /api/auth/register', () => {
 describe('POST /api/auth/login', () => {
   it('returns 200 with token and user on valid credentials', async () => {
     const hash = await bcrypt.hash('correct_pass', 10);
-    pool.query.mockResolvedValueOnce({
+    mockPool.query.mockResolvedValueOnce({
       rows: [{ id: 3, email: 'login@ops.com', role: 'admin', password_hash: hash }],
     });
 
@@ -94,7 +94,7 @@ describe('POST /api/auth/login', () => {
   });
 
   it('returns 401 when the user does not exist', async () => {
-    pool.query.mockResolvedValueOnce({ rows: [] });
+    mockPool.query.mockResolvedValueOnce({ rows: [] });
 
     const res = await request(app)
       .post('/api/auth/login')
@@ -106,7 +106,7 @@ describe('POST /api/auth/login', () => {
 
   it('returns 401 for a wrong password', async () => {
     const hash = await bcrypt.hash('real_pass', 10);
-    pool.query.mockResolvedValueOnce({
+    mockPool.query.mockResolvedValueOnce({
       rows: [{ id: 4, email: 'wrong@ops.com', role: 'viewer', password_hash: hash }],
     });
 

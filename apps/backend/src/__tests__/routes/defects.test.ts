@@ -1,13 +1,13 @@
 import request from 'supertest';
 import app from '../../app';
 import { signToken } from '../../middleware/auth';
+import { pool } from '../../db';
 
 jest.mock('../../db', () => ({
   pool: { query: jest.fn() },
 }));
 
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const { pool } = require('../../db') as { pool: { query: jest.Mock } };
+const mockPool = pool as unknown as { query: jest.Mock };
 
 // Convenience token factories
 const adminToken = () => signToken({ id: 1, email: 'admin@ops.com', role: 'admin' });
@@ -46,7 +46,7 @@ describe('GET /api/defects — auth guard', () => {
   });
 
   it('returns 200 with a valid viewer token', async () => {
-    pool.query.mockResolvedValueOnce({ rows: [sampleDefect] });
+    mockPool.query.mockResolvedValueOnce({ rows: [sampleDefect] });
 
     const res = await request(app)
       .get('/api/defects')
@@ -61,7 +61,7 @@ describe('GET /api/defects — auth guard', () => {
 
 describe('GET /api/defects', () => {
   it('returns all defects as an array', async () => {
-    pool.query.mockResolvedValueOnce({ rows: [sampleDefect] });
+    mockPool.query.mockResolvedValueOnce({ rows: [sampleDefect] });
 
     const res = await request(app)
       .get('/api/defects')
@@ -93,7 +93,7 @@ describe('POST /api/defects — role guard', () => {
   });
 
   it('returns 201 for admin role', async () => {
-    pool.query.mockResolvedValueOnce({ rows: [{ ...sampleDefect, ...payload }] });
+    mockPool.query.mockResolvedValueOnce({ rows: [{ ...sampleDefect, ...payload }] });
 
     const res = await request(app)
       .post('/api/defects')
@@ -104,7 +104,7 @@ describe('POST /api/defects — role guard', () => {
   });
 
   it('returns 201 for supervisor role', async () => {
-    pool.query.mockResolvedValueOnce({ rows: [{ ...sampleDefect, ...payload }] });
+    mockPool.query.mockResolvedValueOnce({ rows: [{ ...sampleDefect, ...payload }] });
 
     const res = await request(app)
       .post('/api/defects')
@@ -144,7 +144,7 @@ describe('DELETE /api/defects/:id — role guard', () => {
   });
 
   it('returns 204 for admin role', async () => {
-    pool.query.mockResolvedValueOnce({ rows: [] });
+    mockPool.query.mockResolvedValueOnce({ rows: [] });
 
     const res = await request(app)
       .delete('/api/defects/1')
@@ -167,7 +167,7 @@ describe('PATCH /api/defects/:id', () => {
   });
 
   it('returns 200 for admin updating a defect', async () => {
-    pool.query.mockResolvedValueOnce({
+    mockPool.query.mockResolvedValueOnce({
       rows: [{ ...sampleDefect, status: 'resolved' }],
     });
 
@@ -181,7 +181,7 @@ describe('PATCH /api/defects/:id', () => {
   });
 
   it('returns 404 when the defect does not exist', async () => {
-    pool.query.mockResolvedValueOnce({ rows: [] });
+    mockPool.query.mockResolvedValueOnce({ rows: [] });
 
     const res = await request(app)
       .patch('/api/defects/999')

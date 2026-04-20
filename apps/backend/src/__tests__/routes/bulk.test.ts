@@ -1,6 +1,7 @@
 import request from 'supertest';
 import app from '../../app';
 import { signToken } from '../../middleware/auth';
+import { pool } from '../../db';
 
 jest.mock('../../db', () => ({
   pool: {
@@ -9,10 +10,7 @@ jest.mock('../../db', () => ({
   },
 }));
 
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const { pool } = require('../../db') as {
-  pool: { query: jest.Mock; connect: jest.Mock };
-};
+const mockPool = pool as unknown as { query: jest.Mock; connect: jest.Mock };
 
 const adminToken = () => signToken({ id: 1, email: 'admin@ops.com', role: 'admin' });
 const viewerToken = () => signToken({ id: 3, email: 'viewer@ops.com', role: 'viewer' });
@@ -32,7 +30,7 @@ function makeMockClient() {
 beforeEach(() => {
   jest.clearAllMocks();
   const client = makeMockClient();
-  pool.connect.mockResolvedValue(client);
+  mockPool.connect.mockResolvedValue(client);
 });
 
 // ─── POST /api/defects/bulk ───────────────────────────────────────────────────
@@ -66,7 +64,7 @@ describe('POST /api/defects/bulk — happy path', () => {
 
   it('calls BEGIN and COMMIT within the transaction', async () => {
     const client = makeMockClient();
-    pool.connect.mockResolvedValue(client);
+    mockPool.connect.mockResolvedValue(client);
 
     await request(app)
       .post('/api/defects/bulk')
@@ -81,7 +79,7 @@ describe('POST /api/defects/bulk — happy path', () => {
 
   it('inserts one row per entry in the payload', async () => {
     const client = makeMockClient();
-    pool.connect.mockResolvedValue(client);
+    mockPool.connect.mockResolvedValue(client);
 
     const rows = Array.from({ length: 5 }, (_, i) => ({
       title: `Defect ${i}`,
@@ -135,7 +133,7 @@ describe('POST /api/defects/bulk — transaction rollback', () => {
     client.query
       .mockResolvedValueOnce({ rows: [] }) // BEGIN
       .mockRejectedValueOnce(new Error('DB insert failed')); // first INSERT
-    pool.connect.mockResolvedValue(client);
+    mockPool.connect.mockResolvedValue(client);
 
     await request(app)
       .post('/api/defects/bulk')

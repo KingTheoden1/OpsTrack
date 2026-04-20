@@ -12,7 +12,7 @@ function LoginPage() {
   return <div>Login page</div>;
 }
 
-function AppWithGuard({ initialRoute = '/dashboard' }: { initialRoute?: string }) {
+function AppWithGuard() {
   return (
     <Routes>
       <Route
