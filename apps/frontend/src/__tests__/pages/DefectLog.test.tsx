@@ -301,11 +301,12 @@ describe('DefectLog — pagination', () => {
     await userEvent.click(screen.getByText('→'));
     expect(screen.getByText('Defect 11')).toBeInTheDocument();
 
-    // Apply a filter — should snap back to page 1
+    // Search for 'Defect 5' — only matches defect #5, not 11 or 12
     const searchInput = screen.getByPlaceholderText('Search title or description…');
-    await userEvent.type(searchInput, 'Defect 1');
+    await userEvent.type(searchInput, 'Defect 5');
 
-    expect(screen.getByText('Defect 1')).toBeInTheDocument();
+    // Page snaps back to 1; defect 5 visible, defect 11 gone
+    expect(screen.getByText('Defect 5')).toBeInTheDocument();
     expect(screen.queryByText('Defect 11')).not.toBeInTheDocument();
   });
 });
