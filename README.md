@@ -2,6 +2,9 @@
 
 **Full-stack defect tracking dashboard for aerospace maintenance workflows.**
 
+![CI](https://github.com/KingTheoden1/OpsTrack/actions/workflows/ci.yml/badge.svg)
+![Coverage](https://img.shields.io/badge/coverage-60%25+-brightgreen)
+
 Live demo: https://reasonable-luck-production-5b09.up.railway.app
 
 ---
