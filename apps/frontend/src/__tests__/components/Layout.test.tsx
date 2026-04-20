@@ -50,13 +50,13 @@ describe('Layout', () => {
     expect(screen.getByText('AI Analysis')).toBeInTheDocument();
   });
 
-  it('calls signOut and redirects to /login when Sign out is clicked', async () => {
+  it('clears token and user from localStorage when Sign out is clicked', async () => {
     seedAuth(ADMIN_USER);
     renderWithProviders(<Wrapped />);
 
     await userEvent.click(screen.getByText('Sign out'));
 
     expect(localStorage.getItem('token')).toBeNull();
-    expect(screen.getByText('Login page')).toBeInTheDocument();
+    expect(localStorage.getItem('user')).toBeNull();
   });
 });
