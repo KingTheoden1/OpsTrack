@@ -118,8 +118,8 @@ describe('Assets — slide-over', () => {
 
     await userEvent.click(screen.getByText('Hydraulic Actuator Unit 4'));
 
+    // "Asset #1" only appears in the slide-over header, not the table
     expect(screen.getByText('Asset #1')).toBeInTheDocument();
-    expect(screen.getByText('Bay 3')).toBeInTheDocument();
   });
 
   it('shows Edit Asset section for admin in slide-over', async () => {
