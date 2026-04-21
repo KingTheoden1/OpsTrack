@@ -6,6 +6,7 @@ import Login from './pages/Login';
 import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
 import DefectLog from './pages/DefectLog';
+import Assets from './pages/Assets';
 import AIAnalysis from './pages/AIAnalysis';
 
 export default function App() {
@@ -25,6 +26,7 @@ export default function App() {
           <Route index element={<Navigate to="/dashboard" replace />} />
           <Route path="dashboard" element={<Dashboard />} />
           <Route path="defects" element={<DefectLog />} />
+          <Route path="assets" element={<Assets />} />
           <Route path="ai" element={<AIAnalysis />} />
         </Route>
         <Route path="*" element={<Navigate to="/dashboard" replace />} />
