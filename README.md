@@ -166,7 +166,7 @@ docker compose up --build
 
 ---
 
-## Interview Reference — Problems & Solutions
+## Problems & Solutions encountered
 
 A record of real technical challenges encountered during development and how they were resolved. Useful for behavioral and technical interview questions.
 
@@ -230,7 +230,7 @@ When the defect count was low (e.g., 2 defects), the Y-axis showed 0, 0.5, 1.0, 
 
 ---
 
-## Interview Q&A
+## Q&A
 
 **"Why a monorepo?"**
 Keeps all services in one place for a portfolio project — single git history, shared CI pipeline, easy to demo. In production at scale you'd evaluate whether separate repos make sense for team ownership boundaries.
