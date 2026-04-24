@@ -168,7 +168,7 @@ docker compose up --build
 
 ## Problems & Solutions encountered
 
-A record of real technical challenges encountered during development and how they were resolved. Useful for behavioral and technical interview questions.
+A record of real technical challenges encountered during development and how they were resolved.
 
 ---
 
